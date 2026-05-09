@@ -7,5 +7,6 @@ namespace WebApplication1.Repositories
         List<Cliente> ObtenerTodos();
         Cliente ObtenerPorId(int id);
         void Insertar(Cliente cliente);
+        Cliente? ObtenerPorEmail(string email);
     }
 }

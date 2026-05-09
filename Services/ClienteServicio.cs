@@ -3,15 +3,16 @@ using WebApplication1.Dtos.DtoCliente;
 using WebApplication1.Middelware.Exceptions;
 using WebApplication1.Models;
 using WebApplication1.Repositories;
+using WebApplication1.Helpers;
 
 namespace WebApplication1.Services
 {
-    public class ClienteServicio
+    public class ClienteService
     {
         private readonly IClienteRepositorio _repo;
         private readonly IMapper _mapper;
 
-        public ClienteServicio(IClienteRepositorio repo, IMapper mapper)
+        public ClienteService(IClienteRepositorio repo, IMapper mapper)
         {
             _repo = repo;
             _mapper = mapper;
@@ -48,7 +49,7 @@ namespace WebApplication1.Services
 
             // Hashear la contraseña — nunca guardar en texto plano
             // BCrypt genera un hash seguro con salt automático
-            cliente.Contrasena = BCrypt.Net.BCrypt.HashPassword(dto.Contrasena);
+            cliente.Contrasena = PasswordHelper.Encriptar(dto.Contrasena);
             cliente.Activo = true;
 
             _repo.Insertar(cliente);

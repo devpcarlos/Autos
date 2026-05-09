@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WebApplication1.Dtos;
 using WebApplication1.Services;
 
@@ -25,6 +26,7 @@ namespace WebApplication1.Controllers
         /// GET api/autos?marca=Toyota&precioMin=50000000&pagina=1&cantidad=5
         /// </summary>
         [HttpGet]
+        [AllowAnonymous] // Permite acceso sin autenticación
         public IActionResult GetTodos([FromQuery] AutoQueryDto query)
         {
             // [FromQuery] indica que los parámetros vienen en la URL
@@ -48,6 +50,7 @@ namespace WebApplication1.Controllers
         /// GET api/autos/1 — Retorna un auto por Id
         /// </summary>
         [HttpGet("{id}")]
+        [Authorize] // Requiere autenticación para acceder a este endpoint
         public IActionResult GetPorId(int id)
         {
             // Si no existe, el servicio lanza NotFoundException
@@ -60,6 +63,7 @@ namespace WebApplication1.Controllers
         /// POST api/autos — Crea un nuevo auto
         /// </summary>
         [HttpPost]
+        [Authorize]
         public IActionResult Crear([FromBody] AutoRequestDto dto)
         {
             /* ModelState se sigue validando aquí porque es responsabilidad
@@ -78,6 +82,7 @@ namespace WebApplication1.Controllers
         /// PUT api/autos/1 — Actualiza un auto existente
         /// </summary>
         [HttpPut("{id}")]
+        [Authorize]
         public IActionResult Actualizar(int id, [FromBody] AutoRequestDto dto)
         {
             if (!ModelState.IsValid)
@@ -93,6 +98,7 @@ namespace WebApplication1.Controllers
         /// DELETE api/autos/1 — Elimina lógicamente un auto
         /// </summary>
         [HttpDelete("{id}")]
+        [Authorize]
         public IActionResult Eliminar(int id)
         {
             // Si no existe, el servicio lanza NotFoundException

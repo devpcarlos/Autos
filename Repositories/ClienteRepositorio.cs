@@ -46,5 +46,15 @@ namespace WebApplication1.Repositories
             _context.Clientes.Add(cliente);
             _context.SaveChanges();
         }
+
+        /// Busca un cliente por su email
+        /// Usado en el proceso de login
+        public Cliente? ObtenerPorEmail(string email)
+        {
+            return _context.Clientes
+                  .FirstOrDefault(c => c.Email == email
+                                    && c.Activo);
+        }
     }
 }
+    

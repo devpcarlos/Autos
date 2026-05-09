@@ -8,9 +8,9 @@ namespace WebApplication1.Controllers
     [Route("api/[controller]")] // → api/clientes
     public class ClientesController : ControllerBase
     {
-        private readonly ClienteServicio _servicio;
+        private readonly ClienteService _servicio;
 
-        public ClientesController(ClienteServicio servicio)
+        public ClientesController(ClienteService servicio)
         {
             _servicio = servicio;
         }
