@@ -11,54 +11,127 @@ namespace WebApplication1.Helpers
     /// </summary>
     public class JwtHelper
     {
-       
-         private readonly IConfiguration _configuration;
 
-            public JwtHelper(IConfiguration configuration)
+        private readonly IConfiguration _configuration;
+        private readonly JwtSecurityTokenHandler _handler;
+
+        public JwtHelper(IConfiguration configuration)
+        {
+            _configuration = configuration;
+            _handler = new JwtSecurityTokenHandler();
+        }
+
+        // ─── Privado: centraliza lectura de config ────────────────────────
+        private TokenValidationParameters ObtenerParametrosValidacion()
+        {
+            var secretKey = _configuration["JwtSettings:SecretKey"] ?? "";
+            var issuer = _configuration["JwtSettings:Issuer"] ?? "";
+            var audience = _configuration["JwtSettings:Audience"] ?? "";
+
+            return new TokenValidationParameters
             {
-                _configuration = configuration;
-            }
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = issuer,
+                ValidAudience = audience,
+                IssuerSigningKey = new SymmetricSecurityKey(
+                                               Encoding.UTF8.GetBytes(secretKey))
+            };
+        }
 
-            /// <summary>
-            /// Genera un token JWT con los datos del cliente
-            /// El token contiene: Id, Email y Nombre del cliente
-            /// </summary>
-            /// <param name="cliente">Cliente autenticado</param>
-            /// <returns>Token JWT como string</returns>
-            public string GenerarToken(Cliente cliente)
+        // ─── 1. GENERAR ───────────────────────────────────────────────────
+        /// <summary>
+        /// Construye y firma el token JWT con los claims del cliente.
+        /// No valida ni decodifica — solo genera.
+        /// </summary>
+        public string GenerarToken(Cliente cliente)
+        {
+            var secretKey = _configuration["JwtSettings:SecretKey"] ?? "";
+            var issuer = _configuration["JwtSettings:Issuer"] ?? "";
+            var audience = _configuration["JwtSettings:Audience"] ?? "";
+            var expirationHours = int.Parse(_configuration["JwtSettings:ExpirationHours"] ??  "8");
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
             {
-                // Lee configuración desde appsettings.json — nunca hardcodeado
-                var secretKey = _configuration["JwtSettings:SecretKey"];
-                var issuer = _configuration["JwtSettings:Issuer"];
-                var audience = _configuration["JwtSettings:Audience"];
-                var expirationHours = int.Parse(_configuration["JwtSettings:ExpirationHours"]);
-
-                // Clave de firma — convierte el string a bytes
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
-                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-                // Claims — datos que viajan dentro del token
-                // Cualquiera puede leerlos pero no modificarlos sin la clave
-                var claims = new[]
-                {
-                new Claim("id",    cliente.Id.ToString()),
-                new Claim("email", cliente.Email),
-                new Claim("nombre", cliente.Nombre),
-                // Rol del usuario — útil para autorización por roles
+                new Claim("id",            cliente.Id.ToString()),
+                new Claim("email",         cliente.Email),
+                new Claim("nombre",        cliente.Nombre),
                 new Claim(ClaimTypes.Role, "Cliente")
             };
 
-                // Construye el token con todos los parámetros
-                var token = new JwtSecurityToken(
-                    issuer: issuer,
-                    audience: audience,
-                    claims: claims,
-                    expires: DateTime.Now.AddHours(expirationHours),
-                    signingCredentials: creds
+            var token = new JwtSecurityToken(
+                issuer: issuer,
+                audience: audience,
+                claims: claims,
+                expires: DateTime.Now.AddHours(expirationHours),
+                signingCredentials: creds
+            );
+
+            return _handler.WriteToken(token);
+        }
+
+        // ─── 2. VALIDAR ───────────────────────────────────────────────────
+        /// <summary>
+        /// Verifica firma, issuer, audience y expiración.
+        /// Retorna Result con los claims si es válido, o el motivo del fallo.
+        /// </summary>
+        public Result<ClaimsPrincipal> ValidarToken(string token)
+        {
+            try
+            {
+                var principal = _handler.ValidateToken(
+                    token,
+                    ObtenerParametrosValidacion(),
+                    out SecurityToken _
                 );
 
-                // Serializa el token a string (formato: xxxxx.yyyyy.zzzzz)
-                return new JwtSecurityTokenHandler().WriteToken(token);
+                return Result<ClaimsPrincipal>.Ok(principal);
+            }
+            catch (SecurityTokenExpiredException)
+            {
+                return Result<ClaimsPrincipal>.Fallo("El token ha expirado");
+            }
+            catch (SecurityTokenInvalidSignatureException)
+            {
+                return Result<ClaimsPrincipal>.Fallo("La firma del token es inválida");
+            }
+            catch (SecurityTokenException ex)
+            {
+                return Result<ClaimsPrincipal>.Fallo($"Token inválido: {ex.Message}");
             }
         }
+
+        // ─── 3. DECODIFICAR ───────────────────────────────────────────────
+        /// <summary>
+        /// Extrae los claims SIN validar firma ni expiración.
+        /// Útil para refresh tokens: leer el id del cliente aunque el token expiró.
+        /// </summary>
+        public Result<ClaimsPrincipal> ObtenerClaims(string token)
+        {
+            try
+            {
+                var parametros = ObtenerParametrosValidacion();
+                parametros.ValidateLifetime = false;
+                parametros.ValidateIssuerSigningKey = true;
+
+                var principal = _handler.ValidateToken(
+                    token,
+                    parametros,
+                    out SecurityToken _
+                );
+
+                return Result<ClaimsPrincipal>.Ok(principal);
+            }
+            catch (SecurityTokenException ex)
+            {
+                return Result<ClaimsPrincipal>.Fallo(
+                    $"No se pudieron extraer los claims: {ex.Message}");
+            }
+        }
+    }
 }

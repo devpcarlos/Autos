@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using WebApplication1.Data;
 using WebApplication1.Helpers;
@@ -23,18 +22,24 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 //AutoMapper
 builder.Services.AddAutoMapper(typeof(Program));
 
-//Repositorios y servicios
+//Repositorios
 builder.Services.AddScoped<IAutoRepositorio, AutoRepositorio>();
-builder.Services.AddScoped<AutoServicio>();
 builder.Services.AddScoped<IClienteRepositorio, ClienteRepositorio>();
+
+//Servicios
+builder.Services.AddScoped<AutoServicio>();
 builder.Services.AddScoped<ClienteService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<JwtHelper>();
 
+//UsuarioContextoService
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<UsuarioContextoService>();
+
 //JWT Authentication
-var secretKey = builder.Configuration["JwtSettings:SecretKey"];
-var issuer = builder.Configuration["JwtSettings:Issuer"];
-var audience = builder.Configuration["JwtSettings:Audience"];
+var secretKey = builder.Configuration["JwtSettings:SecretKey"] ?? "";
+var issuer = builder.Configuration["JwtSettings:Issuer"] ?? ""; 
+var audience = builder.Configuration["JwtSettings:Audience"] ?? "";
 
 builder.Services.AddAuthentication(options =>
 {
@@ -58,6 +63,7 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(
                                Encoding.UTF8.GetBytes(secretKey))
     };
+    options.Events = JwtEventsHelper.ObtenerEventos();
 });
 
 // Autorización por roles
@@ -69,15 +75,12 @@ var app = builder.Build();
 // para interceptar todos los errores
 app.UseMiddleware<ExceptionMiddleware>();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+if (app.Environment.IsDevelopment())  app.MapOpenApi();
+
 
 app.UseHttpsRedirection();
 // IMPORTANTE — Authentication antes que Authorization
 app.UseAuthentication(); // ← verifica el token
 app.UseAuthorization();  // ← verifica los permisos
-
 app.MapControllers();
 app.Run();

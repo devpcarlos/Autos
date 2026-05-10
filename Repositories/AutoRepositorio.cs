@@ -1,6 +1,7 @@
 ﻿using WebApplication1.Data;
 using WebApplication1.Dtos;
 using WebApplication1.Models;
+using static System.Net.WebRequestMethods;
 
 namespace WebApplication1.Repositories
 {
@@ -14,12 +15,64 @@ namespace WebApplication1.Repositories
             _context = context;
         }
 
-        // Retorna solo los autos activos
-        public List<Auto> ObtenerTodos()
+        /// <summary>
+        /// Obtiene autos con filtros opcionales y paginación
+        /// </summary>
+        public IQueryable<Auto> FilterAndPagination(AutoQueryDto query, int clienteId)
         {
-            return _context.Autos
-                           .Where(a => a.Activo)
-                           .ToList();
+            // IQueryable permite construir la consulta paso a paso
+            // sin ejecutarla hasta el final — más eficiente
+            var consulta = _context.Autos
+                                   .Where(a => a.Activo && a.ClienteId == clienteId)
+                                   .AsQueryable();
+
+            // ── Aplicar filtros solo si el cliente los envió ──
+
+            // Filtro por marca — Contains es LIKE '%Toyota%' en SQL
+            if (!string.IsNullOrEmpty(query.Marca))
+                consulta = consulta.Where(a =>
+                    a.Marca.Contains(query.Marca));
+
+            // Filtro por modelo
+            if (!string.IsNullOrEmpty(query.Modelo))
+                consulta = consulta.Where(a =>
+                    a.Modelo.Contains(query.Modelo));
+
+            // Filtro por año exacto
+            if (query.Año.HasValue)
+                consulta = consulta.Where(a =>
+                    a.Año == query.Año.Value);
+
+            // Filtro por rango de precio mínimo
+            if (query.PrecioMin.HasValue)
+                consulta = consulta.Where(a =>
+                    a.Precio >= query.PrecioMin.Value);
+
+            // Filtro por rango de precio máximo
+            if (query.PrecioMax.HasValue)
+                consulta = consulta.Where(a =>
+                    a.Precio <= query.PrecioMax.Value);
+
+            return consulta;
+
+        }
+
+        public (List<Auto> autos, int totalRegistros) ObtenerTodos(AutoQueryDto query, int clienteId)
+        {
+            // ── Paginación ──
+            var consulta = FilterAndPagination(query, clienteId);
+            // Cuenta el total ANTES de paginar — para calcular TotalPaginas
+            var totalRegistros = consulta.Count();
+            // Skip salta los registros de páginas anteriores
+            // Take toma solo los registros de la página actual
+            // Ejemplo página 2, cantidad 10: Skip(10).Take(10)
+            var autos = consulta
+                .OrderBy(a => a.Id)
+                .Skip((query.Pagina - 1) * query.Cantidad)
+                .Take(query.Cantidad)
+                .ToList();
+
+            return (autos, totalRegistros);
         }
 
         // Busca por clave primaria
@@ -51,61 +104,7 @@ namespace WebApplication1.Repositories
                 auto.Activo = false;
                 _context.SaveChanges();
             }
-        }
+        }      
 
-        /// <summary>
-        /// Obtiene autos con filtros opcionales y paginación
-        /// </summary>
-        public (List<Auto> autos, int totalRegistros) ObtenerTodos(AutoQueryDto query)
-        {
-            // IQueryable permite construir la consulta paso a paso
-            // sin ejecutarla hasta el final — más eficiente
-            var consulta = _context.Autos
-                                   .Where(a => a.Activo)
-                                   .AsQueryable();
-
-            // ── Aplicar filtros solo si el cliente los envió ──
-
-            // Filtro por marca — Contains es LIKE '%Toyota%' en SQL
-            if (!string.IsNullOrEmpty(query.Marca))
-                consulta = consulta.Where(a =>
-                    a.Marca.Contains(query.Marca));
-
-            // Filtro por modelo
-            if (!string.IsNullOrEmpty(query.Modelo))
-                consulta = consulta.Where(a =>
-                    a.Modelo.Contains(query.Modelo));
-
-            // Filtro por año exacto
-            if (query.Año.HasValue)
-                consulta = consulta.Where(a =>
-                    a.Año == query.Año.Value);
-
-            // Filtro por rango de precio mínimo
-            if (query.PrecioMin.HasValue)
-                consulta = consulta.Where(a =>
-                    a.Precio >= query.PrecioMin.Value);
-
-            // Filtro por rango de precio máximo
-            if (query.PrecioMax.HasValue)
-                consulta = consulta.Where(a =>
-                    a.Precio <= query.PrecioMax.Value);
-
-            // ── Paginación ──
-
-            // Cuenta el total ANTES de paginar — para calcular TotalPaginas
-            var totalRegistros = consulta.Count();
-
-            // Skip salta los registros de páginas anteriores
-            // Take toma solo los registros de la página actual
-            // Ejemplo página 2, cantidad 10: Skip(10).Take(10)
-            var autos = consulta
-                .OrderBy(a => a.Id)
-                .Skip((query.Pagina - 1) * query.Cantidad)
-                .Take(query.Cantidad)
-                .ToList();
-
-            return (autos, totalRegistros);
-        }
     }
 }

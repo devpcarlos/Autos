@@ -11,10 +11,12 @@ namespace WebApplication1.Controllers
     {
         // El servicio contiene toda la lógica de negocio
         private readonly AutoServicio _servicio;
+        private readonly UsuarioContextoService _usuarioContexto;
 
-        public AutosController(AutoServicio servicio)
+        public AutosController(AutoServicio servicio, UsuarioContextoService usuarioContexto)
         {
             _servicio = servicio;
+            _usuarioContexto = usuarioContexto;
         }
 
         /// <summary>
@@ -31,8 +33,12 @@ namespace WebApplication1.Controllers
         {
             // [FromQuery] indica que los parámetros vienen en la URL
             // ASP.NET Core mapea automáticamente ?marca=Toyota → query.Marca
-            var resultado = _servicio.ObtenerTodos(query);
+            var clienteId = _usuarioContexto.ObtenerClienteId();
+            var resultado = _servicio.ObtenerTodos(query, clienteId);
             return Ok(resultado);
+
+
+
         }
 
         /// <summary>
@@ -55,8 +61,8 @@ namespace WebApplication1.Controllers
         {
             // Si no existe, el servicio lanza NotFoundException
             // el middleware la captura y retorna HTTP 404
-            var auto = _servicio.ObtenerPorId(id);
-            return Ok(auto); // HTTP 200
+            var clienteId = _usuarioContexto.ObtenerClienteId();
+            return Ok(_servicio.ObtenerPorId(id, clienteId));
         }
 
         /// <summary>
@@ -70,10 +76,8 @@ namespace WebApplication1.Controllers
             del controlador validar los datos de entrada, no del middleware*/
             if (!ModelState.IsValid)
                 return BadRequest(ModelState); // HTTP 400
-
-            var autoCreado = _servicio.Crear(dto);
-
-            // HTTP 201 — recurso creado exitosamente
+            var clienteId = _usuarioContexto.ObtenerClienteId();
+            var autoCreado = _servicio.Crear(dto, clienteId);
             return CreatedAtAction(nameof(GetPorId),
                 new { id = autoCreado.Id }, autoCreado);
         }
@@ -90,8 +94,9 @@ namespace WebApplication1.Controllers
 
             // Si no existe, el servicio lanza NotFoundException
             // el middleware la captura y retorna HTTP 404
-            var autoActualizado = _servicio.Actualizar(id, dto);
-            return Ok(autoActualizado); // HTTP 200
+            var clienteId      = _usuarioContexto.ObtenerClienteId();
+        var autoActualizado = _servicio.Actualizar(id, dto, clienteId);
+        return Ok(autoActualizado);
         }
 
         /// <summary>
@@ -103,8 +108,9 @@ namespace WebApplication1.Controllers
         {
             // Si no existe, el servicio lanza NotFoundException
             // el middleware la captura y retorna HTTP 404
-            _servicio.Eliminar(id);
-            return NoContent(); // HTTP 204 éxito sin contenido
+            var clienteId = _usuarioContexto.ObtenerClienteId();
+            _servicio.Eliminar(id, clienteId);
+            return NoContent();
         }
     }
 }

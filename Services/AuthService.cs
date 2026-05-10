@@ -51,7 +51,7 @@ namespace WebApplication1.Services
 
             // 6. Retorna el token y datos básicos
             var expirationHours = int.Parse(
-                _configuration["JwtSettings:ExpirationHours"]);
+                _configuration["JwtSettings:ExpirationHours"] ?? "8");
 
             return new LoginResponseDto
             {

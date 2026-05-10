@@ -24,10 +24,10 @@ namespace WebApplication1.Services
         /// <summary>
         /// Obtiene autos con filtros y paginación
         /// </summary>
-        public PaginadoResponseDto<AutoResponseDto> ObtenerTodos(AutoQueryDto query)
+        public PaginadoResponseDto<AutoResponseDto> ObtenerTodos(AutoQueryDto query, int clienteId)
         {
             // 1. Consulta al repositorio con filtros
-            var (autos, totalRegistros) = _repo.ObtenerTodos(query);
+            var (autos, totalRegistros) = _repo.ObtenerTodos(query, clienteId);
 
             // 2. Convierte List<Auto> → List<AutoResponseDto>
             var autosDto = _mapper.Map<List<AutoResponseDto>>(autos);
@@ -39,52 +39,40 @@ namespace WebApplication1.Services
                 PaginaActual = query.Pagina,
                 CantidadPorPagina = query.Cantidad,
                 TotalRegistros = totalRegistros,
-
                 // Math.Ceiling redondea hacia arriba
                 // 25 registros / 10 por página = 2.5 → 3 páginas
                 TotalPaginas = (int)Math.Ceiling(
-                                       (double)totalRegistros / query.Cantidad)
+                                    (double)totalRegistros / query.Cantidad)
             };
-        }
-
-        /// <summary>
-        /// Obtiene todos los autos activos y los convierte a DTOs
-        /// </summary>
-        public List<AutoResponseDto> ObtenerTodos()
-        {
-            // 1. Trae todas las entidades activas de la BD
-            var autos = _repo.ObtenerTodos();
-
-            // 2. Convierte List<Auto> → List<AutoResponseDto>
-            return _mapper.Map<List<AutoResponseDto>>(autos);
         }
 
         /// <summary>
         /// Busca un auto por Id y lo convierte a DTO
         /// </summary>
-        public AutoResponseDto ObtenerPorId(int id)
+        public AutoResponseDto ObtenerPorId(int id, int clienteId)
         {
             // 1. Busca la entidad en la BD por clave primaria
             var auto = _repo.ObtenerPorId(id);
 
             // 2. Si no existe lanza NotFoundException
             //    el middleware la captura y retorna HTTP 404
-            if (auto == null)
+            if (auto == null || auto.ClienteId != clienteId)
                 throw new NotFoundException($"No se encontró el auto con Id {id}");
 
-            // 3. Convierte Auto → AutoResponseDto
             return _mapper.Map<AutoResponseDto>(auto);
         }
 
         /// <summary>
         /// Crea un nuevo auto a partir del DTO enviado por el cliente
         /// </summary>
-        public AutoResponseDto Crear(AutoRequestDto dto)
+        public AutoResponseDto Crear(AutoRequestDto dto, int clienteId)
         {
             // 1. Convierte AutoRequestDto → Auto (entidad)
             //    AutoMapper ignora Id, FechaCreacion y Activo
             var auto = _mapper.Map<Auto>(dto);
 
+            // ClienteId viene del token — no del body
+            auto.ClienteId = clienteId;
             // 2. Asigna campos que el cliente no debe enviar
             auto.FechaCreacion = DateTime.Now; // fecha actual del servidor
             auto.Activo = true;          // activo por defecto
@@ -100,14 +88,14 @@ namespace WebApplication1.Services
         /// <summary>
         /// Actualiza los datos de un auto existente
         /// </summary>
-        public AutoResponseDto Actualizar(int id, AutoRequestDto dto)
+        public AutoResponseDto Actualizar(int id, AutoRequestDto dto, int clienteId)
         {
             // 1. Verifica que el auto existe en la BD
             var auto = _repo.ObtenerPorId(id);
 
             // 2. Si no existe lanza NotFoundException
             //    el middleware la captura y retorna HTTP 404
-            if (auto == null)
+            if (auto == null || auto.ClienteId != clienteId)
                 throw new NotFoundException($"No se encontró el auto con Id {dto.Marca}");
 
             // 3. Mapea el DTO sobre la entidad existente
@@ -125,14 +113,14 @@ namespace WebApplication1.Services
         /// <summary>
         /// Elimina lógicamente un auto (Activo = false)
         /// </summary>
-        public void Eliminar(int id)
+        public void Eliminar(int id, int clienteId)
         {
             // 1. Verifica que el auto existe en la BD
             var auto = _repo.ObtenerPorId(id);
 
             // 2. Si no existe lanza NotFoundException
             //    el middleware la captura y retorna HTTP 404
-            if (auto == null)
+            if (auto == null || auto.ClienteId != clienteId)
                 throw new NotFoundException($"No se encontró el auto con Id {id}");
 
             // 3. El repositorio hace eliminación lógica (Activo = false)

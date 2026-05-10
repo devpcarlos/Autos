@@ -8,9 +8,9 @@ namespace WebApplication1.Repositories
     public interface IAutoRepositorio
     {
         // Método nuevo con filtros y paginación
-        (List<Auto> autos, int totalRegistros) ObtenerTodos(AutoQueryDto query);
-        List<Auto> ObtenerTodos();
-        Auto ObtenerPorId(int id);
+        (List<Auto> autos, int totalRegistros) ObtenerTodos(
+         AutoQueryDto query, int clienteId);
+        Auto? ObtenerPorId(int id);
         void Insertar(Auto auto);
         void Actualizar(Auto auto);
         void Eliminar(int id);
