@@ -1,12 +1,12 @@
 ﻿using AutoMapper;
 using WebApplication1.Dtos;
-using WebApplication1.Middelware.Exceptions;
+using WebApplication1.Middleware.Exceptions;
 using WebApplication1.Models;
 using WebApplication1.Repositories;
 
 namespace WebApplication1.Services
 {
-    public class AutoServicio
+    public class AutoService
     {
 
         // Repositorio para operaciones de base de datos
@@ -15,7 +15,7 @@ namespace WebApplication1.Services
         // IMapper convierte entre entidades y DTOs automáticamente
         private readonly IMapper _mapper;
 
-        public AutoServicio(IAutoRepositorio repo, IMapper mapper)
+        public AutoService(IAutoRepositorio repo, IMapper mapper)
         {
             _repo = repo;
             _mapper = mapper;
@@ -74,7 +74,7 @@ namespace WebApplication1.Services
             // ClienteId viene del token — no del body
             auto.ClienteId = clienteId;
             // 2. Asigna campos que el cliente no debe enviar
-            auto.FechaCreacion = DateTime.Now; // fecha actual del servidor
+            auto.FechaCreacion = DateTime.UtcNow; // fecha actual del servidor
             auto.Activo = true;          // activo por defecto
 
             // 3. Guarda en la BD — EF Core ejecuta el INSERT
@@ -96,7 +96,7 @@ namespace WebApplication1.Services
             // 2. Si no existe lanza NotFoundException
             //    el middleware la captura y retorna HTTP 404
             if (auto == null || auto.ClienteId != clienteId)
-                throw new NotFoundException($"No se encontró el auto con Id {dto.Marca}");
+                throw new NotFoundException($"No se encontró el auto con la marca {dto.Marca}");
 
             // 3. Mapea el DTO sobre la entidad existente
             //    Solo actualiza Marca, Modelo, Año y Precio

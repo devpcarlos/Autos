@@ -10,10 +10,10 @@ namespace WebApplication1.Controllers
     public class AutosController : ControllerBase
     {
         // El servicio contiene toda la lógica de negocio
-        private readonly AutoServicio _servicio;
+        private readonly AutoService _servicio;
         private readonly UsuarioContextoService _usuarioContexto;
 
-        public AutosController(AutoServicio servicio, UsuarioContextoService usuarioContexto)
+        public AutosController(AutoService servicio, UsuarioContextoService usuarioContexto)
         {
             _servicio = servicio;
             _usuarioContexto = usuarioContexto;
@@ -40,17 +40,6 @@ namespace WebApplication1.Controllers
 
 
         }
-
-        /// <summary>
-        /// GET api/autos — Retorna todos los autos activos
-        /// </summary>
-       /* [HttpGet]
-        public IActionResult GetTodos()
-        {
-            // Si falla, el middleware captura la excepción y retorna HTTP 500
-            var autos = _servicio.ObtenerTodos();
-            return Ok(autos); // HTTP 200 con lista en JSON
-        }*/
 
         /// <summary>
         /// GET api/autos/1 — Retorna un auto por Id

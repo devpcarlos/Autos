@@ -1,6 +1,7 @@
-﻿using WebApplication1.Dtos.DtoAuth;
+﻿using Microsoft.Extensions.Options;
+using WebApplication1.Dtos.DtoAuth;
 using WebApplication1.Helpers;
-using WebApplication1.Middelware.Exceptions;
+using WebApplication1.Middleware.Exceptions;
 using WebApplication1.Repositories;
 
 namespace WebApplication1.Services
@@ -8,16 +9,16 @@ namespace WebApplication1.Services
     public class AuthService
     {
         private readonly IClienteRepositorio _repo;
+        private readonly JwtSettings _settings;
         private readonly JwtHelper _jwtHelper;
-        private readonly IConfiguration _configuration;
 
-        public AuthService(IClienteRepositorio repo,
-                           JwtHelper jwtHelper,
-                           IConfiguration configuration)
+        public AuthService(IClienteRepositorio repo, 
+            JwtHelper jwtHelper,
+            IOptions<JwtSettings> options)
         {
             _repo = repo;
             _jwtHelper = jwtHelper;
-            _configuration = configuration;
+            _settings = options.Value; // El objeto JwtSettings ya bindeado y validado
         }
 
         /// <summary>
@@ -49,16 +50,12 @@ namespace WebApplication1.Services
             // 5. Genera el token JWT con los datos del cliente
             var token = _jwtHelper.GenerarToken(cliente);
 
-            // 6. Retorna el token y datos básicos
-            var expirationHours = int.Parse(
-                _configuration["JwtSettings:ExpirationHours"] ?? "8");
-
             return new LoginResponseDto
             {
                 Token = token,
                 Nombre = cliente.Nombre,
                 Email = cliente.Email,
-                Expiracion = DateTime.Now.AddHours(expirationHours)
+                Expiracion = DateTime.UtcNow.AddHours(_settings.ExpirationHours)
             };
         }
     }

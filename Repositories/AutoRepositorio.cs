@@ -1,7 +1,6 @@
 ﻿using WebApplication1.Data;
 using WebApplication1.Dtos;
 using WebApplication1.Models;
-using static System.Net.WebRequestMethods;
 
 namespace WebApplication1.Repositories
 {

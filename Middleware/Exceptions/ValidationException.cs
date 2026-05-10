@@ -1,4 +1,4 @@
-﻿namespace WebApplication1.Middelware.Exceptions
+﻿namespace WebApplication1.Middleware.Exceptions
 {
     public class ValidationException : Exception
     {

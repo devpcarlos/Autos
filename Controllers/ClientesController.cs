@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WebApplication1.Dtos.DtoCliente;
 using WebApplication1.Services;
 
@@ -19,6 +20,7 @@ namespace WebApplication1.Controllers
         /// GET api/clientes — retorna todos los clientes con sus autos
         /// </summary>
         [HttpGet]
+        [Authorize]
         public IActionResult GetTodos()
         {
             var clientes = _servicio.ObtenerTodos();
@@ -46,7 +48,7 @@ namespace WebApplication1.Controllers
 
             var clienteCreado = _servicio.Crear(dto);
             return CreatedAtAction(nameof(GetPorId),
-                new { id = clienteCreado.Nombre }, clienteCreado);
+                new { nombre = clienteCreado.Nombre }, clienteCreado);
         }
     }
 }

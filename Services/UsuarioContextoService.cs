@@ -1,4 +1,6 @@
-﻿namespace WebApplication1.Services
+﻿using WebApplication1.Middleware.Exceptions;
+
+namespace WebApplication1.Services
 {
     public class UsuarioContextoService
     {
@@ -16,7 +18,11 @@
         {
             var claim = _httpContextAccessor.HttpContext?
                             .User.FindFirst("id")?.Value;
-            return int.Parse(claim ?? "0");
+            if (claim == null)
+            {
+                throw new UnAuthorizedException("No Autenticado");
+            }
+            return int.Parse(claim);
         }
     }
 }

@@ -4,7 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using WebApplication1.Data;
 using WebApplication1.Helpers;
-using WebApplication1.Middelware;
+using WebApplication1.Middleware;
 using WebApplication1.Repositories;
 using WebApplication1.Services;
 
@@ -27,7 +27,7 @@ builder.Services.AddScoped<IAutoRepositorio, AutoRepositorio>();
 builder.Services.AddScoped<IClienteRepositorio, ClienteRepositorio>();
 
 //Servicios
-builder.Services.AddScoped<AutoServicio>();
+builder.Services.AddScoped<AutoService>();
 builder.Services.AddScoped<ClienteService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<JwtHelper>();
@@ -36,10 +36,10 @@ builder.Services.AddScoped<JwtHelper>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<UsuarioContextoService>();
 
-//JWT Authentication
-var secretKey = builder.Configuration["JwtSettings:SecretKey"] ?? "";
-var issuer = builder.Configuration["JwtSettings:Issuer"] ?? ""; 
-var audience = builder.Configuration["JwtSettings:Audience"] ?? "";
+builder.Services.AddOptions<JwtSettings>()
+    .Bind(builder.Configuration.GetSection("JwtSettings"))
+    .ValidateOnStart(); // Valida que la configuración JWT sea correcta al iniciar la app
+var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()!;
 
 builder.Services.AddAuthentication(options =>
 {
@@ -58,10 +58,10 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,  // verifica la firma
 
         // Valores esperados — vienen de appsettings.json
-        ValidIssuer = issuer,
-        ValidAudience = audience,
+        ValidIssuer = jwtSettings.Issuer,
+        ValidAudience = jwtSettings.Audience,
         IssuerSigningKey = new SymmetricSecurityKey(
-                               Encoding.UTF8.GetBytes(secretKey))
+                               Encoding.UTF8.GetBytes(jwtSettings.SecretKey))
     };
     options.Events = JwtEventsHelper.ObtenerEventos();
 });

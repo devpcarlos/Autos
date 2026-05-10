@@ -1,4 +1,5 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -11,22 +12,20 @@ namespace WebApplication1.Helpers
     /// </summary>
     public class JwtHelper
     {
-
-        private readonly IConfiguration _configuration;
+        private readonly JwtSettings _settings;
         private readonly JwtSecurityTokenHandler _handler;
 
-        public JwtHelper(IConfiguration configuration)
+        public JwtHelper(IOptions<JwtSettings>options)
         {
-            _configuration = configuration;
             _handler = new JwtSecurityTokenHandler();
+            // options.Value contiene el objeto JwtSettings ya bindeado
+            // y validado por ValidateOnStart() en Program.cs
+            _settings = options.Value;
         }
 
         // ─── Privado: centraliza lectura de config ────────────────────────
         private TokenValidationParameters ObtenerParametrosValidacion()
         {
-            var secretKey = _configuration["JwtSettings:SecretKey"] ?? "";
-            var issuer = _configuration["JwtSettings:Issuer"] ?? "";
-            var audience = _configuration["JwtSettings:Audience"] ?? "";
 
             return new TokenValidationParameters
             {
@@ -34,10 +33,10 @@ namespace WebApplication1.Helpers
                 ValidateAudience = true,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
-                ValidIssuer = issuer,
-                ValidAudience = audience,
+                ValidIssuer = _settings.Issuer,
+                ValidAudience = _settings.Audience,
                 IssuerSigningKey = new SymmetricSecurityKey(
-                                               Encoding.UTF8.GetBytes(secretKey))
+                                               Encoding.UTF8.GetBytes(_settings.SecretKey))
             };
         }
 
@@ -48,12 +47,7 @@ namespace WebApplication1.Helpers
         /// </summary>
         public string GenerarToken(Cliente cliente)
         {
-            var secretKey = _configuration["JwtSettings:SecretKey"] ?? "";
-            var issuer = _configuration["JwtSettings:Issuer"] ?? "";
-            var audience = _configuration["JwtSettings:Audience"] ?? "";
-            var expirationHours = int.Parse(_configuration["JwtSettings:ExpirationHours"] ??  "8");
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.SecretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
@@ -65,10 +59,10 @@ namespace WebApplication1.Helpers
             };
 
             var token = new JwtSecurityToken(
-                issuer: issuer,
-                audience: audience,
+                issuer: _settings.Issuer,
+                audience: _settings.Audience,
                 claims: claims,
-                expires: DateTime.Now.AddHours(expirationHours),
+                expires: DateTime.UtcNow.AddHours(_settings.ExpirationHours), //DateTime.Now.AddHours(expirationHours),
                 signingCredentials: creds
             );
 

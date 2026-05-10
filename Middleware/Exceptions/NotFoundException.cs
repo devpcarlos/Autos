@@ -1,4 +1,4 @@
-﻿namespace WebApplication1.Middelware.Exceptions
+﻿namespace WebApplication1.Middleware.Exceptions
 {
        // Se lanza cuando un recurso no existe en la BD
         public class NotFoundException : Exception

@@ -1,8 +1,8 @@
 ﻿using System.Net;
 using System.Text.Json;
-using WebApplication1.Middelware.Exceptions;
+using WebApplication1.Middleware.Exceptions;
 
-namespace WebApplication1.Middelware
+namespace WebApplication1.Middleware
 {
     // Middleware = intercepta TODAS las peticiones HTTP
     // Si cualquier parte del código lanza una excepción,
@@ -41,6 +41,11 @@ namespace WebApplication1.Middelware
                 // Datos inválidos → HTTP 400
                 _logger.LogWarning(ex.Message);
                 await EscribirRespuesta(context, HttpStatusCode.BadRequest, ex.Message);
+            }catch (UnAuthorizedException ex)
+            {
+                // No autenticado → HTTP 401
+                _logger.LogWarning(ex.Message);
+                await EscribirRespuesta(context, HttpStatusCode.Unauthorized, ex.Message);
             }
             catch (Exception ex)
             {

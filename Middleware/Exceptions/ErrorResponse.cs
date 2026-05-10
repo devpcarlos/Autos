@@ -1,4 +1,4 @@
-﻿namespace WebApplication1.Middelware.Exceptions
+﻿namespace WebApplication1.Middleware.Exceptions
 {
     // Estructura estándar que retorna la API cuando hay un error
     // Todos los errores tendrán este mismo formato JSON

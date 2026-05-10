@@ -42,7 +42,7 @@ namespace WebApplication1.Helpers
             {
                 statusCode,
                 mensaje,
-                fechaHora = DateTime.Now
+                fechaHora = DateTime.UtcNow
             });
         }
     }
